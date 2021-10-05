@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-vocabulary-view",
+	"name": "Vocabulary View",
+	"version": "0.1.0",
+	"minAppVersion": "0.11.13",
+	"description": "Write down some words and their explanations and preview them in a vocabulary test style",
+	"author": "",
+	"authorUrl": "",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,161 @@
+ul {
+    padding: 1vw;
+}
+
+.vocaview-block {
+    display: block;
+    margin: 1em;
+    padding: 0.5em;
+    // border: 1px solid var(--background-modifier-border);
+    box-shadow: 0 0.25em 0.625em var(--background-modifier-box-shadow);
+    user-select: none;
+    overflow-wrap: anywhere;
+}
+
+// used in both block type list(for every word) and block type selection(for options)
+.selectable-item {
+    display: block;
+    border: 1px solid var(--background-modifier-border);
+    border-left: 4px solid var(--background-modifier-border);
+    color: var(--text-normal);
+    font-size: var(--editor-font-size);
+    padding: 0.5em 1em;
+    cursor: pointer;
+    transition: background-color .2s ease-out, border .2s ease-out;
+
+
+    &:hover {
+        border-color: var(--text-normal);
+    }
+
+}
+
+// for block type list
+.vocaview-block {
+    .word-list {
+        margin-bottom: 0;
+        margin-top: 0;
+
+        li {
+            .upper {
+                font-weight: bold;
+                font-size: 1.5em;
+            }
+
+            .lower {
+                display: inline;
+
+                span {
+                    visibility: visible;
+                }
+            }
+
+            .hidden {
+                display: inline;
+                background-color: var(--background-modifier-border);
+
+                span {
+                    visibility: hidden;
+                }
+            }
+        }
+
+    }
+
+    .bottom-bar {
+        display: flex;
+        justify-content: flex-end;
+
+        .show-hide-button {
+            height: 3em;
+        }
+    }
+}
+
+// for block type select
+.vocaview-block {
+    .question-and-accuracy {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+
+        .question {
+            font-weight: bold;
+            font-size: 1.5em;
+            padding: 0.5em 1em 0 1em;
+            text-align: left;
+        }
+
+        .accuracy {
+            text-align: right;
+        }
+    }
+
+    .options {
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .correct {
+        background-color: var(--interactive-success);
+    }
+
+    .wrong {
+        background-color: var(--text-error);
+    }
+}
+
+// for block type card
+.vocaview-block {
+    .question-and-answer {
+        cursor: pointer;
+
+        .question {
+            font-weight: bold;
+            font-size: 3em;
+            padding: 0.5em 1em 0 1em;
+            text-align: center;
+        }
+
+        .answer {
+            font-size: 1.5em;
+            display: flex;
+            justify-content: center;
+            margin: 1em 0;
+
+            .answer-text {
+                display: inline;
+
+                span {
+                    display: inline;
+                    visibility: visible;
+                }
+            }
+            .hidden {
+                display: inline;
+                background-color: var(--background-modifier-border);
+
+                span {
+                    display: inline;
+                    visibility: hidden;
+                }
+            }
+        }
+
+
+    }
+
+    .bottom-bar {
+        display: flex;
+        justify-content: flex-end;
+
+        .next-button {
+            height: 3em;
+        }
+    }
+
+}
+
+
+
