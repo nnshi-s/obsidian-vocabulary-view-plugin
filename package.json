@@ -1,6 +1,6 @@
 {
   "name": "obsidian-vocabulary-view",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write down some words and their explanations and preview them in a vocabulary test style",
   "main": "main.js",
   "scripts": {
