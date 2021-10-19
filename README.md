@@ -1,7 +1,7 @@
 ## Obsidian Vocabulary View
 Vocabulary view is a plugin for obsidian using which you can write down some words with their explanations and preview them in a vocabulary test style.
 
-![show](readme_img/readme_show.png)
+![show](https://raw.githubusercontent.com/nnshi-s/obsidian-vocabulary-view-plugin/main/readme_img/readme_show.png)
 
 ### Usage
 Create a block with the following format:
@@ -36,7 +36,7 @@ For example:
 ```
 is going to be previewed something like this:  
 
-![example](readme_img/readme_example.png)
+![example](https://raw.githubusercontent.com/nnshi-s/obsidian-vocabulary-view-plugin/main/readme_img/readme_example.png)
 
 
 ### Manually installing the plugin
