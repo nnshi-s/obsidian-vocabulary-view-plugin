@@ -440,8 +440,35 @@ function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, c
     questionAndAnswerEl.addEventListener("click", () => {
         divToggleHidden(answerEl, undefined);
     });
-    // create next button html element
     let bottomBarEl = blockEl.createDiv({cls: "bottom-bar"});
+    // create placeholder button element
+    bottomBarEl.createEl("button", {
+        cls: "placeholder-button",
+        text: localedTexts.nextBtn[moment.locale()] ?? localedTexts.nextBtn["en"]
+    });
+    // create spell input html element
+    let spellInputEl = bottomBarEl.createEl("input", {
+        cls: "spell",
+        type: "text",
+        attr: {"spellcheck": "false"}
+    });
+    // check answer
+    spellInputEl.addEventListener("keydown", () => {
+        setTimeout(() => {
+            let correctAnswer = answerSpanEl.textContent;
+            let userAnswer = spellInputEl.value;
+            if (userAnswer.trim() === "")
+                return;
+            if (userAnswer.trim() === correctAnswer) {
+                spellInputEl.toggleClass("correct", true);
+                spellInputEl.toggleClass("wrong", false);
+            } else {
+                spellInputEl.toggleClass("correct", false);
+                spellInputEl.toggleClass("wrong", true);
+            }
+        }, 200);
+    });
+    // create next button html element
     let nextButtonEl = bottomBarEl.createEl("button", {
         cls: "next-button",
         text: localedTexts.nextBtn[moment.locale()] ?? localedTexts.nextBtn["en"]
@@ -451,5 +478,10 @@ function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, c
         questionEl.innerText = question;
         answerSpanEl.innerText = answer;
         divSetHidden(answerEl, undefined);
+        spellInputEl.toggleClass("correct", false);
+        spellInputEl.toggleClass("wrong", false);
+        spellInputEl.value = "";
+        spellInputEl.focus();
     });
+
 }

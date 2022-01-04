@@ -10,25 +10,36 @@
     ul {
         padding: 1vw;
     }
-}
-
-// used in both block type list(for every word) and block type selection(for options)
-.selectable-item {
-    display: block;
-    border: 1px solid var(--background-modifier-border);
-    border-left: 4px solid var(--background-modifier-border);
-    color: var(--text-normal);
-    font-size: var(--editor-font-size);
-    padding: 0.5em 1em;
-    cursor: pointer;
-    transition: background-color .2s ease-out, border .2s ease-out;
+    // used in both block type list(for every word) and block type selection(for options)
+    .selectable-item {
+        display: block;
+        border: 1px solid var(--background-modifier-border);
+        border-left: 4px solid var(--background-modifier-border);
+        color: var(--text-normal);
+        font-size: var(--editor-font-size);
+        padding: 0.5em 1em;
+        cursor: pointer;
+        transition: background-color .2s ease-out, border .2s ease-out;
 
 
-    &:hover {
-        border-color: var(--text-normal);
+        &:hover {
+            border-color: var(--text-normal);
+        }
+
     }
-
+    input {
+        background: var(--background-modifier-form-field);
+        border: 1px solid var(--background-modifier-border);
+        color: var(--text-normal);
+        font-family: 'Inter', sans-serif;
+        padding: 5px 14px;
+        font-size: 16px;
+        border-radius: 4px;
+        outline: none;
+        height: 2em;
+    }
 }
+
 
 // for block type list
 .vocaview-block {
@@ -98,11 +109,11 @@
     }
 
     .correct {
-        background-color: var(--interactive-success);
+        background-color: var(--background-modifier-success);
     }
 
     .wrong {
-        background-color: var(--text-error);
+        background-color: var(--background-modifier-error-hover);
     }
 }
 
@@ -146,12 +157,33 @@
 
     }
 
+    // ref: https://stackoverflow.com/questions/38948102/center-one-and-right-left-align-other-flexbox-element
     .bottom-bar {
         display: flex;
-        justify-content: flex-end;
+        justify-content: center;
+        align-items: center;
 
         .next-button {
             height: 3em;
+            margin-left: auto;
+        }
+
+        .placeholder-button {
+            visibility: hidden;
+            margin-right: auto;
+        }
+
+        .spell {
+            transition: background-color .2s ease-out, border .2s ease-out;
+            font-size: var(--editor-font-size);
+        }
+
+        .correct {
+            background-color: var(--background-modifier-success);
+        }
+
+        .wrong {
+            background-color: var(--background-modifier-error-hover);
         }
     }
 
