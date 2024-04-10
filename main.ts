@@ -1,8 +1,23 @@
 import {App, MarkdownPostProcessorContext, moment, Plugin, PluginSettingTab, Setting} from 'obsidian';
+import {DEFAULT_SETTINGS, vocabularyViewSettings, VocabularyViewSettingTab} from "./settings";
+
 
 export default class VocabularyView extends Plugin {
 
+    settings: vocabularyViewSettings;
+
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
+    }
+
     async onload() {
+
+        await this.loadSettings();
+        this.addSettingTab(new VocabularyViewSettingTab(this.app, this));
 
         this.registerMarkdownCodeBlockProcessor("vocaview-list1", (source, el, ctx) => {
             renderBlockTypeList(1, source, el, ctx);
@@ -34,9 +49,11 @@ export default class VocabularyView extends Plugin {
     }
 }
 
+
 interface localedText {
     [key: string]: string
 }
+
 
 const localedTexts: { showHideAllBtn: localedText, accuracy: localedText, nextBtn: localedText } = {
     showHideAllBtn: {
@@ -59,6 +76,7 @@ const localedTexts: { showHideAllBtn: localedText, accuracy: localedText, nextBt
     }
 
 }
+
 
 class Word {
     word: string;
@@ -240,7 +258,7 @@ function fillSelectableItemWithWord(subtype: number, selectableItemEl: HTMLEleme
             // initially hide all explanations
             lowerEl = selectableItemEl.createDiv({cls: ["lower", "hidden"]});
             lowerEl.createSpan({text: boolVar ? word.explanation : word.word});
-            // break;
+        // break;
     }
 
     return [upperEl, lowerEl];
@@ -404,9 +422,9 @@ function getRandomQuestionAndAnswer(subtype: number, words: Words): [string, str
     switch (subtype) {
         default:
         case 1:
-           question = word.word;
-           answer = word.explanation;
-           break;
+            question = word.word;
+            answer = word.explanation;
+            break;
         case 2:
             question = word.explanation;
             answer = word.word;
@@ -415,7 +433,7 @@ function getRandomQuestionAndAnswer(subtype: number, words: Words): [string, str
             const boolVar: boolean = Math.random() > 0.5;
             question = boolVar ? word.word : word.explanation;
             answer = boolVar ? word.explanation : word.word;
-            // break;
+        // break;
     }
     return [question, answer];
 }

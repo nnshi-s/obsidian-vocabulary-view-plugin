@@ -17,6 +17,7 @@
     ],
     "strict": true,
     "strictNullChecks": true,
+    "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
