@@ -1,11 +1,14 @@
 import {App, MarkdownPostProcessorContext, moment, Plugin, PluginSettingTab, Setting} from 'obsidian';
-import {DEFAULT_SETTINGS, vocabularyViewSettings, VocabularyViewSettingTab} from "./settings";
+import {DEFAULT_SETTINGS, VocabularyViewSettings, VocabularyViewSettingTab} from "./settings";
 import {Words, Word, shuffle} from "./words";
+import {VocabularyBook} from "./vocabularybook";
 
 
 export default class VocabularyView extends Plugin {
 
-    settings: vocabularyViewSettings;
+    settings: VocabularyViewSettings;
+    // Map: vocabulary book name -> vocabulary book object
+    vocabularyBooks: Map<string, VocabularyBook> = new Map<string, VocabularyBook>();
 
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
@@ -17,9 +20,11 @@ export default class VocabularyView extends Plugin {
 
     async onload() {
 
+        // load settings
         await this.loadSettings();
         this.addSettingTab(new VocabularyViewSettingTab(this.app, this));
 
+        // register Markdown code block processors
         this.registerMarkdownCodeBlockProcessor("vocaview-list1", (source, el, ctx) => {
             renderBlockTypeList(1, source, el, ctx);
         });
@@ -47,6 +52,15 @@ export default class VocabularyView extends Plugin {
         this.registerMarkdownCodeBlockProcessor("vocaview-card3", (source, el, ctx) => {
             renderBlockTypeCard(3, source, el, ctx);
         });
+
+        // load vocabulary books
+        for (const path of this.settings.vocabularyBookPaths) {
+            let vocabularyBook = new VocabularyBook(this.app, path);
+            this.vocabularyBooks.set(vocabularyBook.getVocabularyBookName(), vocabularyBook);
+            await vocabularyBook.loadWordsFromDiskToCache();
+        }
+
+
     }
 }
 
