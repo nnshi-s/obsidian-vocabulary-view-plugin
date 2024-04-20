@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: Partial<VocabularyViewSettings> = {
     vocabularyBookPaths: [""],
 }
 
-enum VocabularyBookPathStatus {
+export enum VocabularyBookPathStatus {
     INVALID,
     DOES_NOT_EXIST,
     EXISTS,
@@ -24,12 +24,28 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
         You can either manually enter the relative path to the file,
         or right-click on the file in Obsidian, select 'Copy Obsidian URL', and paste it here.`;
 
-    defaultSettingName: string = "Vocabulary Book";
+    defaultSettingName: string = "Book";
+
+    settingsChangedCallback: () => Promise<void>;
+    // vocabularyBookAddedCallback: (path: string) => Promise<void>;
+    // vocabularyBookRemovedCallback: (path: string) => Promise<void>;
 
     constructor(app: App, plugin: VocabularyView) {
         super(app, plugin);
         this.plugin = plugin;
     }
+
+    onSettingsChanged(callback: () => Promise<void>): void {
+        this.settingsChangedCallback = callback;
+    }
+
+    // onVocabularyBookAdded(callback: (path: string) => Promise<void>): void {
+    //     this.vocabularyBookAddedCallback = callback;
+    // }
+    //
+    // onVocabularyBookRemoved(callback: (path: string) => Promise<void>): void {
+    //     this.vocabularyBookRemovedCallback = callback;
+    // }
 
     display(): void {
         let {containerEl} = this;
@@ -57,11 +73,14 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
         for (let i = 0; i < this.plugin.settings.numOfVocabularyBooks; i++) {
             this.createSetting(containerEl, i);
         }
+
+        this.settingsChangedCallback();
     }
+
 
     createSetting(containerEl: HTMLElement, i: number): void {
         let temporarilyDisableOnChange = false;
-        let settingName = this.defaultSettingName + " " + (i+1);
+        let settingName = this.defaultSettingName + " " + (i + 1);
 
 
         let st = new Setting(containerEl)
@@ -79,8 +98,9 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
                     if (value === "") {
                         st.setName(this.defaultSettingName);
                     } else {
-                        let formattedPath = this.formatPath(value);
-                        let fileStatus = await this.checkPath(formattedPath);
+                        const fs = this.app.vault.adapter as FileSystemAdapter;
+                        let formattedPath = VocabularyViewSettingTab.formatPath(value);
+                        let fileStatus = await VocabularyViewSettingTab.checkPath(formattedPath, fs);
 
                         if (fileStatus === VocabularyBookPathStatus.INVALID) {
                             st.setName(settingName + " (Invalid Path)");
@@ -91,9 +111,11 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
                             temporarilyDisableOnChange = true;
                             this.plugin.settings.vocabularyBookPaths[i] = formattedPath;
                             // text.setValue(this.plugin.settings.vocabularyBookPath);
+                            // await this.vocabularyBookAddedCallback(formattedPath);
                             temporarilyDisableOnChange = false;
                         }
                     }
+                    await this.settingsChangedCallback();
                     await this.plugin.saveSettings();
                 }));
 
@@ -104,19 +126,19 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
      * Check if the input path is a relative path ending with .md.
      * @param input
      */
-    isRelativePath(input: string): boolean {
+    static isRelativePath(input: string): boolean {
         // regular expression for relative paths
         const relativePathRegex = /^[^:*?"<>|\r\n]+(\.[^:*?"<>|\r\n]+)*\.md$/;
         return relativePathRegex.test(input);
     }
 
-    isObsidianLink(input: string): boolean {
+    static isObsidianLink(input: string): boolean {
         // regular expression for Obsidian links
         const obsidianLinkRegex = /^obsidian:\/\/open\?vault=[^&]+&file=([^&]+)$/;
         return obsidianLinkRegex.test(input);
     }
 
-    convertObsidianLinkToRelativePath(input: string): string {
+    static convertObsidianLinkToRelativePath(input: string): string {
         // regular expression for Obsidian links
         const obsidianLinkRegex = /^obsidian:\/\/open\?vault=[^&]+&file=([^&]+)$/;
 
@@ -136,20 +158,20 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
      * Format the input path to a relative path with the .md extension.
      * @param path
      */
-    formatPath(path: string): string {
+    static formatPath(path: string): string {
         if (path === "") {
             return "";
         }
 
         let formattedPath: string = path;
-        if (this.isObsidianLink(path)) {
-            formattedPath = this.convertObsidianLinkToRelativePath(path);
+        if (VocabularyViewSettingTab.isObsidianLink(path)) {
+            formattedPath = VocabularyViewSettingTab.convertObsidianLinkToRelativePath(path);
         }
         // add .md extension if it doesn't exist
         if (!formattedPath.endsWith(".md")) {
             formattedPath += ".md";
         }
-        if (!this.isRelativePath(formattedPath)) {
+        if (!VocabularyViewSettingTab.isRelativePath(formattedPath)) {
             return "";
         }
         return formattedPath;
@@ -158,10 +180,11 @@ export class VocabularyViewSettingTab extends PluginSettingTab {
     /**
      * Check the input path, and return the description string.
      * @param path
+     * @param fs
      */
-    async checkPath(path: string): Promise<VocabularyBookPathStatus> {
-        if (this.isRelativePath(path)) {
-            const fs = this.app.vault.adapter as FileSystemAdapter;
+    static async checkPath(path: string, fs: FileSystemAdapter): Promise<VocabularyBookPathStatus> {
+        if (VocabularyViewSettingTab.isRelativePath(path)) {
+            // const fs = this.app.vault.adapter as FileSystemAdapter;
             let fileExists = await fs.exists(path);
             if (fileExists) {
                 return VocabularyBookPathStatus.EXISTS;

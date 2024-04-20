@@ -11,7 +11,7 @@ export class VocabularyBook {
 
     public constructor(app: App, path: string) {
         this.vocabularyBookPath = path;
-        this.vocabularyBookName = this.extractNameFromPath(path);
+        this.vocabularyBookName = extractNameFromPath(path);
         this.cache = new Map<string, Word>();
         this.app = app;
     }
@@ -32,6 +32,10 @@ export class VocabularyBook {
     public async removeWord(word: Word): Promise<void> {
         this.cache.delete(word.word);
         await this.saveWordsFromCacheToDisk();
+    }
+
+    public hasWord(word: string): boolean {
+        return this.cache.has(word);
     }
 
     public async loadWordsFromDiskToCache(): Promise<void> {
@@ -71,16 +75,22 @@ export class VocabularyBook {
             for (const word of this.cache.values()) {
                 newVocaviewBlockContent += `${word.word}: ${word.explanation}\n`;
             }
-
             // replace the old vocaview block with the new one
-            let newFileContent = sourceFileContent.replace(
+            sourceFileContent = sourceFileContent.replace(
                 match[0],
                 `${match[0].slice(0, match[0].indexOf('\n'))}\n${newVocaviewBlockContent.trim()}\n\`\`\``
             );
-
-            // write the modified file content back to the disk
-            await fs.write(this.vocabularyBookPath, newFileContent);
+        } else {
+            // no vocaview block found, create a new one
+            let newVocaviewBlockContent = '';
+            for (const word of this.cache.values()) {
+                newVocaviewBlockContent += `${word.word}: ${word.explanation}\n`;
+            }
+            sourceFileContent += `\n\`\`\`vocaview-list1\n${newVocaviewBlockContent.trim()}\n\`\`\``;
         }
+
+        // write the modified file content back to the disk
+        await fs.write(this.vocabularyBookPath, sourceFileContent);
     }
 
     public printCache(): void {
@@ -88,15 +98,19 @@ export class VocabularyBook {
         console.log(this.cache);
     }
 
-    private extractNameFromPath(path: string): string {
-        const pathComponents = path.split('/');
-        const lastComponent = pathComponents[pathComponents.length - 1];
-        const name = lastComponent.split('.')[0];
-        return name;
-    }
-
     public getVocabularyBookName(): string {
         return this.vocabularyBookName;
     }
 
+    public getVocabularyBookPath(): string {
+        return this.vocabularyBookPath;
+    }
+
+}
+
+export function extractNameFromPath(path: string): string {
+    const pathComponents = path.split('/');
+    const lastComponent = pathComponents[pathComponents.length - 1];
+    const name = lastComponent.split('.')[0];
+    return name;
 }

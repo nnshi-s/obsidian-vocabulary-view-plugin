@@ -1,7 +1,15 @@
-import {App, MarkdownPostProcessorContext, moment, Plugin, PluginSettingTab, Setting} from 'obsidian';
-import {DEFAULT_SETTINGS, VocabularyViewSettings, VocabularyViewSettingTab} from "./settings";
+import {
+    App,
+    FileSystemAdapter,
+    MarkdownPostProcessorContext,
+    moment,
+    Plugin,
+    PluginSettingTab,
+    Setting
+} from 'obsidian';
+import {DEFAULT_SETTINGS, VocabularyBookPathStatus, VocabularyViewSettings, VocabularyViewSettingTab} from "./settings";
 import {Words, Word, shuffle} from "./words";
-import {VocabularyBook} from "./vocabularybook";
+import {VocabularyBook, extractNameFromPath} from "./vocabularybook";
 
 
 export default class VocabularyView extends Plugin {
@@ -22,7 +30,20 @@ export default class VocabularyView extends Plugin {
 
         // load settings
         await this.loadSettings();
-        this.addSettingTab(new VocabularyViewSettingTab(this.app, this));
+
+        // create settings tab
+        let settingsTab = new VocabularyViewSettingTab(this.app, this);
+        settingsTab.onSettingsChanged(async () => {
+            await this.syncVocabularyBooksWithSettings();
+        })
+        // settingsTab.onVocabularyBookAdded(async (path: string) => {
+        //     let vocabularyBook = new VocabularyBook(this.app, path);
+        //     this.vocabularyBooks.set(vocabularyBook.getVocabularyBookName(), vocabularyBook);
+        //     // console.log(`Vocabulary book ${vocabularyBook.getVocabularyBookName()} has been added.`);
+        //     console.log(this.vocabularyBooks);
+        //     await vocabularyBook.loadWordsFromDiskToCache();
+        // })
+        this.addSettingTab(settingsTab);
 
         // register Markdown code block processors
         this.registerMarkdownCodeBlockProcessor("vocaview-list1", (source, el, ctx) => {
@@ -53,14 +74,59 @@ export default class VocabularyView extends Plugin {
             renderBlockTypeCard(3, source, el, ctx);
         });
 
+        // make sure the vocabularyBookPaths array has enough length
+        if (this.settings.vocabularyBookPaths.length < this.settings.numOfVocabularyBooks) {
+            // append empty paths to match the length to the number of vocabulary books
+            for (let i = this.settings.vocabularyBookPaths.length; i < this.settings.numOfVocabularyBooks; i++) {
+                this.settings.vocabularyBookPaths.push("");
+            }
+        }
+
         // load vocabulary books
-        for (const path of this.settings.vocabularyBookPaths) {
+        this.vocabularyBooks.clear();
+        for (let i = 0; i < this.settings.numOfVocabularyBooks; i++) {
+            // this.settings.vocabularyBookPaths may contain more paths than this.settings.numOfVocabularyBooks
+            let path = this.settings.vocabularyBookPaths[i];
             let vocabularyBook = new VocabularyBook(this.app, path);
             this.vocabularyBooks.set(vocabularyBook.getVocabularyBookName(), vocabularyBook);
             await vocabularyBook.loadWordsFromDiskToCache();
         }
 
+    }
 
+    async syncVocabularyBooksWithSettings(): Promise<void> {
+        // create a set of all paths visible in the settings tab
+        // do not use new set(this.settings.vocabularyBookPaths) directly
+        // because this.settings.vocabularyBookPaths may contain more paths than this.settings.numOfVocabularyBooks
+        let allPaths = new Set<string>();
+        for (let i = 0; i < this.settings.numOfVocabularyBooks; i++) {
+            allPaths.add(this.settings.vocabularyBookPaths[i]);
+        }
+
+        // if a book exists only in the map, remove it
+        for (const [name, book] of this.vocabularyBooks) {
+            if (!allPaths.has(book.getVocabularyBookPath())) {
+                this.vocabularyBooks.delete(name);
+                // console.log(`Vocabulary book ${name} has been removed.`);
+                // console.log(this.vocabularyBooks);
+            }
+        }
+
+        // if a book exists only in the settings, add it
+        for (const path of allPaths) {
+            const bookName = extractNameFromPath(path);
+            if (!this.vocabularyBooks.has(bookName)) {
+                const fs = this.app.vault.adapter as FileSystemAdapter;
+                let fileStatus = await VocabularyViewSettingTab.checkPath(path, fs);
+                if (fileStatus === VocabularyBookPathStatus.EXISTS) {
+                    let vocabularyBook = new VocabularyBook(this.app, path);
+                    this.vocabularyBooks.set(vocabularyBook.getVocabularyBookName(), vocabularyBook);
+                    // console.log(`Vocabulary book ${bookName} has been added.`);
+                    // console.log(this.vocabularyBooks);
+                    await vocabularyBook.loadWordsFromDiskToCache();
+                }
+            }
+        }
     }
 }
 
