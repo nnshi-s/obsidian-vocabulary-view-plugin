@@ -7,7 +7,7 @@ export interface VocabularyViewSettings {
 }
 
 export const DEFAULT_SETTINGS: Partial<VocabularyViewSettings> = {
-    numOfVocabularyBooks: 1,
+    numOfVocabularyBooks: 0,
     vocabularyBookPaths: [""],
 }
 
