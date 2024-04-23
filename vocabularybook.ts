@@ -108,7 +108,10 @@ export class VocabularyBook {
 
 }
 
-export function extractNameFromPath(path: string): string {
+export function extractNameFromPath(path: string | undefined): string {
+    if (typeof path === 'undefined') {
+        return '';
+    }
     const pathComponents = path.split('/');
     const lastComponent = pathComponents[pathComponents.length - 1];
     const name = lastComponent.split('.')[0];

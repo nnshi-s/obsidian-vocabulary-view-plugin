@@ -40,6 +40,29 @@
     }
 }
 
+// styles for buttons that are used to add words to a vocabulary book
+.vocaview-block {
+    .vocbook-button-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+
+        .vocbook-button {
+            margin: 0.3em;
+            padding: 0.3em;
+            height: auto;
+            flex: 0 1 auto;
+            line-height: normal;
+            // white-space: nowrap;
+            // flex-shrink: 0;
+
+            &.added {
+                background-color: var(--text-faint);
+            }
+        }
+    }
+}
 
 // for block type list
 .vocaview-block {
@@ -72,6 +95,8 @@
         }
 
     }
+
+
 
     .bottom-bar {
         display: flex;

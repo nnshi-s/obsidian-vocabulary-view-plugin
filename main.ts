@@ -47,31 +47,31 @@ export default class VocabularyView extends Plugin {
 
         // register Markdown code block processors
         this.registerMarkdownCodeBlockProcessor("vocaview-list1", (source, el, ctx) => {
-            renderBlockTypeList(1, source, el, ctx);
+            renderBlockTypeList(1, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-list2", (source, el, ctx) => {
-            renderBlockTypeList(2, source, el, ctx);
+            renderBlockTypeList(2, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-list3", (source, el, ctx) => {
-            renderBlockTypeList(3, source, el, ctx);
+            renderBlockTypeList(3, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-choice1", (source, el, ctx) => {
-            renderBlockTypeChoice(1, source, el, ctx);
+            renderBlockTypeChoice(1, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-choice2", (source, el, ctx) => {
-            renderBlockTypeChoice(2, source, el, ctx);
+            renderBlockTypeChoice(2, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-choice3", (source, el, ctx) => {
-            renderBlockTypeChoice(3, source, el, ctx);
+            renderBlockTypeChoice(3, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-card1", (source, el, ctx) => {
-            renderBlockTypeCard(1, source, el, ctx);
+            renderBlockTypeCard(1, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-card2", (source, el, ctx) => {
-            renderBlockTypeCard(2, source, el, ctx);
+            renderBlockTypeCard(2, source, el, ctx, this);
         });
         this.registerMarkdownCodeBlockProcessor("vocaview-card3", (source, el, ctx) => {
-            renderBlockTypeCard(3, source, el, ctx);
+            renderBlockTypeCard(3, source, el, ctx, this);
         });
 
         // make sure the vocabularyBookPaths array has enough length
@@ -272,7 +272,42 @@ function fillSelectableItemWithWord(subtype: number, selectableItemEl: HTMLEleme
 }
 
 
-function renderBlockTypeList(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+function createAddToVocBookButtons(plugin: VocabularyView, word: Word) {
+    let updateBtnTextAndStyle = (book: VocabularyBook, word: Word, btnEl: HTMLElement) => {
+        if (book.hasWord(word.word)) {
+            btnEl.innerText = "-" + book.getVocabularyBookName();
+            btnEl.toggleClass("added", true);
+        } else {
+            btnEl.innerText = "+" + book.getVocabularyBookName();
+            btnEl.toggleClass("added", false);
+        }
+    }
+
+    // let vocbookButtonDivEl = parentEl.createDiv({cls: "vocbook-button-list"});
+    let vocbookButtonDivEl = document.createElement("div") as HTMLDivElement;
+    vocbookButtonDivEl.className = "vocbook-button-list";
+    for (const [name, book] of plugin.vocabularyBooks) {
+        let vocbookButtonEl = vocbookButtonDivEl.createEl("button", {
+            cls: "vocbook-button",
+            text: ""
+        });
+        updateBtnTextAndStyle(book, word, vocbookButtonEl);
+        vocbookButtonEl.addEventListener("click", async (event: MouseEvent) => {
+            event.stopPropagation(); // prevent the click event from propagating to the parent element
+            if (book.hasWord(word.word))
+                await book.removeWord(word);
+            else
+                await book.addWord(word);
+            updateBtnTextAndStyle(book, word, vocbookButtonEl);
+            // console.log("ctx.docID: " + ctx.docId);
+            // console.log("ctx.sourcePath: " + ctx.sourcePath);
+        });
+    }
+
+    return vocbookButtonDivEl;
+}
+
+function renderBlockTypeList(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext, plugin: VocabularyView) {
     const words = new Words(source, ':');
     if (words.length < 1) return;
 
@@ -280,10 +315,19 @@ function renderBlockTypeList(subtype: number, source: string, el: HTMLElement, c
     let listEl = blockEl.createEl("ul", {cls: "word-list"});
     let lowerElArr: HTMLElement[] = [];
     let numOfHidden: numberObj = new numberObj(0);
+    let currentFileIsVocabularyBook: boolean = isCurrentFileVocabularyBook(ctx, plugin);
 
     // create word list
     for (const word of words) {
         let listItemEl = createOneSelectableItem(listEl);
+
+        // create "Add to vocabulary book" buttons if current .md file is not itself a vocabulary book
+        if (plugin.settings.numOfVocabularyBooks > 0 && !currentFileIsVocabularyBook) {
+            let buttonsEl = createAddToVocBookButtons(plugin, word);
+            listItemEl.appendChild(buttonsEl);
+        }
+
+
         let [upperEl, lowerEl] = fillSelectableItemWithWord(subtype, listItemEl, word);
         numOfHidden.increase();
 
@@ -328,7 +372,14 @@ function renderBlockTypeList(subtype: number, source: string, el: HTMLElement, c
     });
 }
 
-function getRandomQuestionAndOptions(subtype: number, words: Words, numOfOptions: number): [string, string[]] {
+/**
+ * Get a random question and options from the given words
+ * @param subtype 1: word -> explanation, 2: explanation -> word, 3: random
+ * @param words Words object
+ * @param numOfOptions number of options
+ * @returns [word, question, options] where question is a string equal to word.word or word.explanation
+ */
+function getRandomQuestionAndOptions(subtype: number, words: Words, numOfOptions: number): [Word, string, string[]] {
     numOfOptions = words.length < numOfOptions ? words.length : numOfOptions;
     const wordArr = words.getRandomWords(numOfOptions);
     let question: string = "";
@@ -353,14 +404,23 @@ function getRandomQuestionAndOptions(subtype: number, words: Words, numOfOptions
         // break;
     }
     // options[0] is always the correct answer
-    return [question, options];
+    return [wordArr[0], question, options];
 }
 
-function renderBlockTypeChoice(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+function renderBlockTypeChoice(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext, plugin: VocabularyView) {
     const words = new Words(source, ":");
-    let [question, options] = getRandomQuestionAndOptions(subtype, words, 4);
+    let [word, question, options] = getRandomQuestionAndOptions(subtype, words, 4);
 
     let blockEl = el.createDiv({cls: "vocaview-block"});
+
+    // create "Add to vocabulary book" buttons if current .md file is not itself a vocabulary book
+    let addToVocBookButtonsEl: HTMLDivElement | undefined = undefined;
+    let currentFileIsVocabularyBook: boolean = isCurrentFileVocabularyBook(ctx, plugin);
+    if (plugin.settings.numOfVocabularyBooks > 0 && !currentFileIsVocabularyBook) {
+        addToVocBookButtonsEl = createAddToVocBookButtons(plugin, word);
+        blockEl.appendChild(addToVocBookButtonsEl);
+    }
+
     // create question  and accuracy html elements
     let questionAndAccuracyEl = blockEl.createDiv({cls: "question-and-accuracy"});
     let questionEl = questionAndAccuracyEl.createDiv({
@@ -411,7 +471,16 @@ function renderBlockTypeChoice(subtype: number, source: string, el: HTMLElement,
             setTimeout(() => {
                 optionEl.toggleClass("correct", false);
                 optionEl.toggleClass("wrong", false);
-                [question, options] = getRandomQuestionAndOptions(subtype, words, numOfOptions);
+                [word, question, options] = getRandomQuestionAndOptions(subtype, words, numOfOptions);
+                // create "Add to vocabulary book" buttons if current .md file is not itself a vocabulary book
+                if (plugin.settings.numOfVocabularyBooks > 0 && !currentFileIsVocabularyBook) {
+                    let newAddToVocBookButtonsEl = createAddToVocBookButtons(plugin, word);
+                    if (addToVocBookButtonsEl) {
+                        addToVocBookButtonsEl.parentNode?.replaceChild(newAddToVocBookButtonsEl, addToVocBookButtonsEl);
+                        addToVocBookButtonsEl = newAddToVocBookButtonsEl; // update the reference. without this line, the buttons will only be updated for the first time
+                    }
+                }
+                // modify the question and options
                 questionEl.innerText = question;
                 shuffle(indexArr);
                 for (let i = 0; i < indexArr.length; i++) {
@@ -423,7 +492,13 @@ function renderBlockTypeChoice(subtype: number, source: string, el: HTMLElement,
     }
 }
 
-function getRandomQuestionAndAnswer(subtype: number, words: Words): [string, string] {
+/**
+ * Get a random question and answer from the given words
+ * @param subtype 1: word -> explanation, 2: explanation -> word, 3: random
+ * @param words Words object
+ * @returns [word, question, answer] where question is a string equal to word.word or word.explanation
+ */
+function getRandomQuestionAndAnswer(subtype: number, words: Words): [Word, string, string] {
     const word = words.getRandomWord();
     let question: string, answer: string;
     switch (subtype) {
@@ -442,15 +517,24 @@ function getRandomQuestionAndAnswer(subtype: number, words: Words): [string, str
             answer = boolVar ? word.explanation : word.word;
         // break;
     }
-    return [question, answer];
+    return [word, question, answer];
 }
 
-function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext, plugin: VocabularyView) {
     const words = new Words(source, ":");
     let blockEl = el.createDiv({cls: "vocaview-block"});
-    let questionAndAnswerEl = blockEl.createDiv({cls: "question-and-answer"})
 
-    let [question, answer] = getRandomQuestionAndAnswer(subtype, words);
+    let [word, question, answer] = getRandomQuestionAndAnswer(subtype, words);
+
+    // create "Add to vocabulary book" buttons if current .md file is not itself a vocabulary book
+    let addToVocBookButtonsEl: HTMLDivElement | undefined = undefined;
+    let currentFileIsVocabularyBook: boolean = isCurrentFileVocabularyBook(ctx, plugin);
+    if (plugin.settings.numOfVocabularyBooks > 0 && !currentFileIsVocabularyBook) {
+        addToVocBookButtonsEl = createAddToVocBookButtons(plugin, word);
+        blockEl.appendChild(addToVocBookButtonsEl);
+    }
+
+    let questionAndAnswerEl = blockEl.createDiv({cls: "question-and-answer"})
 
     // create question html element
     let questionEl = questionAndAnswerEl.createDiv({
@@ -499,7 +583,17 @@ function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, c
         text: localedTexts.nextBtn[moment.locale()] ?? localedTexts.nextBtn["en"]
     });
     nextButtonEl.addEventListener("click", () => {
-        [question, answer] = getRandomQuestionAndAnswer(subtype, words);
+        [word, question, answer] = getRandomQuestionAndAnswer(subtype, words);
+
+        // create "Add to vocabulary book" buttons if current .md file is not itself a vocabulary book
+        if (plugin.settings.numOfVocabularyBooks > 0 && !currentFileIsVocabularyBook) {
+            let newAddToVocBookButtonsEl = createAddToVocBookButtons(plugin, word);
+            if (addToVocBookButtonsEl) {
+                addToVocBookButtonsEl.parentNode?.replaceChild(newAddToVocBookButtonsEl, addToVocBookButtonsEl);
+                addToVocBookButtonsEl = newAddToVocBookButtonsEl; // update the reference. without this line, the buttons will only be updated for the first time
+            }
+        }
+
         questionEl.innerText = question;
         answerSpanEl.innerText = answer;
         divSetHidden(answerEl, undefined);
@@ -509,4 +603,8 @@ function renderBlockTypeCard(subtype: number, source: string, el: HTMLElement, c
         spellInputEl.focus();
     });
 
+}
+
+function isCurrentFileVocabularyBook(ctx: MarkdownPostProcessorContext, plugin: VocabularyView): boolean {
+    return plugin.vocabularyBooks.has(extractNameFromPath(ctx.sourcePath));
 }
