@@ -43,6 +43,9 @@ is going to be previewed something like this:
 ![example](https://raw.githubusercontent.com/nnshi-s/obsidian-vocabulary-view-plugin/main/readme_img/readme_example.png)
 
 ### Vocabulary Books
+
+![vocbooks](https://raw.githubusercontent.com/nnshi-s/obsidian-vocabulary-view-plugin/main/readme_img/readme_vocbook.png)
+
 You can create a new blank `.md` file, or designate an existing blank `.md` file as a vocabulary book. 
 Within the `vocaview` blocks, you can add words to the vocabulary book or remove words from it. 
 The vocabulary book itself is just another `.md` file with `vocaview` blocks.
